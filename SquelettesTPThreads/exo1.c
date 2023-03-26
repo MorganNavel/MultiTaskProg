@@ -1,17 +1,15 @@
-#include <string.h>
-#include <stdio.h>//perror
 #include <sys/types.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <iostream>
 #include <pthread.h>
+#include <unistd.h>
+#include "calcul.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 
 struct paramsFonctionThread {
 
   int idThread;
 
-  // si d'autres paramètres, les ajouter ici.
 
 };
 
@@ -19,9 +17,8 @@ struct paramsFonctionThread {
 void * fonctionThread (void * params){
 
   struct paramsFonctionThread * args = (struct paramsFonctionThread *) params;
-
-  // a compléter
-  ...
+  printf("Naissance du Thread nÂ°%d\n",args->idThread);
+  pthread_exit(NULL);
 }
 
 
@@ -34,33 +31,36 @@ int main(int argc, char * argv[]){
 
   
   pthread_t threads[atoi(argv[1])];
-
-  ...
-
+  struct paramsFonctionThread params[atoi(argv[1])];
  
   
-  // création des threards 
+  // crï¿½ation des threards 
   for (int i = 0; i < atoi(argv[1]); i++){
 
-    // Le passage de paramètre est fortement conseillé (éviter les
+    // Le passage de paramï¿½tre est fortement conseillï¿½ (ï¿½viter les
     // variables globles).
-
-     ... // compléter pour initialiser les paramètres
-    if (pthread_create(&threads[i], NULL,..., ...) != 0){
+    params[i].idThread=i;
+    // complï¿½ter pour initialiser les paramï¿½tres
+    if (pthread_create(&threads[i], NULL,fonctionThread, &params[i]) != 0){
       perror("erreur creation thread");
       exit(1);
     }
   }
 
 
+  for (int i = 0; i < atoi(argv[1]); i++){
+    if (pthread_join(threads[i],NULL) != 0){
+      perror("erreur join");
+      exit(1);
+    }
+  }
+
 // garder cette saisie et modifier le code en temps venu.
   char c; 
-  printf("saisir un caractère \n");
-  fgets(m, 1, stdin);
+  printf("saisir un caractÃ¨re \n");
+  fgets(&c, 1, stdin);
 
- ... compléter
-
+  printf("thread principal : fin de tous les threads secondaires\n");
   return 0;
- 
 }
  
