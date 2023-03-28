@@ -4,9 +4,12 @@
 #include "calcul.h"
 #include <stdio.h>
 #include <stdlib.h>
-void changeCoureur(int * di,int idTeam,int nbJoueur){
+void changeCoureur(int * di,int idTeam,int nbTeam){
     // Alterne les coureurs
-    for(int i = idTeam*Joueur;i<idTeam*Joueur+nbJoueur;i++){
+    printf("Changement de coureur de l'équipe n°%d",idTeam);
+    int size_ = sizeof(di)/sizeof(int);
+    int nbJoueur = size_/nbTeam; //nombre de joueur par équipe
+    for(int i = idTeam*nbJoueur;i<idTeam*nbJoueur+nbJoueur;i++){
         if(di[i]==0){
             di[i]=1;
         }
@@ -29,6 +32,7 @@ struct varPartageesTeam{
 struct varPartagees{
     int nbTour;
     int nbCoureur;
+    int nbTeam;
     int * di;
     pthread_mutex_t verrou;
     pthread_cond_t cond;
@@ -41,19 +45,68 @@ void * race (void * p) {
     printf("Naissance du Joueur n°%d\n",args->idThread);
     for(int i = 0;i<vPartage->nbTour;i++){
         // Début du nouveau tour
+        if(pthread_mutex_lock(&(vPartage->verrou))!=0){
+            perror("Erreur du vérrouillage du verrou:");
+            exit(1);
+        }
+        while(vPartage->di[args->idThread]==0){ 
+            // Mise en attente ceux qui ne joue pas (ceux qui ont 0 dans di)
+            if(pthread_cond_wait(&(vPartageTeam->cond),&(vPartageTeam->verrou))!=0){
+                perror("Erreur lors de l'attente:");
+                exit(1);
+            }
+        }
+
+        if(pthread_mutex_unlock(&(vPartage->verrou))!=0){
+            perror("Erreur du vérrouillage du verrou:");
+            exit(1);
+        }
+
         printf("Joueur n°%d: DEPART !\n",args->idThread);
         calcul(rand()%10);
         printf("Joueur n°%d: ARRIVEE\n",args->idThread);
+
+
         if(pthread_mutex_lock(&(vPartageTeam->verrou))!=0){
             perror("Erreur du vérrouillage du verrou:");
             exit(1);
         }
+
         vPartageTeam->cpt++;
         if(vPartageTeam->cpt==vPartage->nbCoureur){
-            printf("Passage de relai\n");
-        }else{
-            // On atend le coéquipier
+            printf("Passage de relai\n"); //réveille les deux autres coureurs
+            vPartageTeam->cpt=0; //remets à zero la condition d'attente pour le prochain tour
+            printf("Joueur n°%d",args->idThread);
+
+            if(pthread_mutex_lock(&(vPartage->verrou))!=0){
+                perror("Erreur du vérrouillage du verrou:");
+                exit(1);
+            }
+            printf("Joueur n°%d",args->idThread);
+            changeCoureur(vPartage->di,vPartageTeam->idTeam,vPartage->nbTeam);
             
+            if(pthread_mutex_unlock(&(vPartage->verrou))!=0){
+                perror("Erreur du dévérrouillage du verrou:");
+                exit(1);
+            }
+            if(pthread_cond_broadcast(&(vPartage->cond))!=0){
+                perror("Erreur du diffusion d'évènement:");
+                exit(1);
+            }
+            printf("Joueur n°%d reveille ses partenaires\n",args->idThread);
+        }else{
+            // On attend le coéquipier
+            while(vPartageTeam->cpt<vPartage->nbCoureur){
+                printf("Joueur n°%d est mis en attente\n",args->idThread);
+                if(pthread_cond_wait(&(vPartageTeam->cond),&(vPartageTeam->verrou))!=0){
+                    perror("Erreur lors de l'attente:");
+                    exit(1);
+                }
+            }
+        }
+        if(pthread_mutex_unlock(&vPartageTeam->verrou)!=0){
+            perror("Erreur du dérrouillage du verrou:");
+            exit(1);
         }
     }
     
@@ -87,6 +140,7 @@ int main(int argc, char * argv[]){
 
     srand(atoi(argv[1]));  // initialisation de rand pour la simulation de longs calculs
     struct varPartageesTeam vPartageTeam[atoi(argv[2])];
+    // Initialisation des équipes
     for(int i = 0;i < atoi(argv[2]);i++){
         vPartageTeam[i].cpt = 0;
         vPartageTeam[i].idTeam = i;
@@ -99,16 +153,19 @@ int main(int argc, char * argv[]){
             exit(1);
         }
     }
-    int team = 0;
+    // Initialisation du premier tours
+    for(int i =0;i<atoi(argv[2])*atoi(argv[1]);i++){
+       if(i%4 == 0 | i%4 == 1){
+        vPartage.di[i] = 1;
+       }
+       else{
+        vPartage.di[i]=0;
+       }
+    } 
     for (int i = 0; i < atoi(argv[2])*atoi(argv[1]); i++){
-        if(i%3==0){
-            team++;
-        }
         tabParams[i].idThread = i;
         tabParams[i].vPartage = &vPartage;
-        tabParams[i].vPartageTeam = &(vPartageTeam[team]);
-        printf("Thread n°%d dans l'équipe n°%d\n",tabParams[i].idThread,tabParams[i].vPartageTeam->idTeam);
-        
+        tabParams[i].vPartageTeam = &(vPartageTeam[i/4]);        
         if (pthread_create(&threads[i], NULL,race,&tabParams[i]) != 0){
             perror("erreur creation thread");
             exit(1);
@@ -117,8 +174,8 @@ int main(int argc, char * argv[]){
      // attente de la fin des  threards. Partie obligatoire 
     for (int i = 0; i < atoi(argv[1])*atoi(argv[2]); i++){
         if (pthread_join(threads[i],NULL) != 0){
-        perror("erreur join");
-        exit(1);
+            perror("erreur join");
+            exit(1);
         }
     }
   printf("thread principal : fin de tous les threads secondaires\n");
