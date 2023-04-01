@@ -4,7 +4,9 @@
 #include "calcul.h"
 #include <stdio.h>
 #include <stdlib.h>
-
+#define BASSINE 50
+#define MAX_WATER_BRING 5
+// #define WATER_LOSS 2
 struct Player{
     int id;
     struct Team *team;
@@ -22,29 +24,35 @@ void * race(void * p){
     struct Player * player = (struct Player *) p;
     struct Team *team = player->team;
     printf("Joueur n°%d de l'équipe n°%d\n",player->id,team->id);
-    while(team->idRunner!= player->id){
-        printf("Joueur n°%d: Mis en attente de son tour\n",player->id);
-        if(pthread_cond_wait(&(team->cond),&(team->verrou))!=0){
-            perror("Erreur lors de l'attente:");
-            exit(1);
+    // Joueur attend si c'est pas son tour
+    while(team->water>0){
+        while(team->idRunner!= player->id){
+            printf("Joueur n°%d: Mis en attente de son tour\n",player->id);
+            if(pthread_cond_wait(&(team->cond),&(team->verrou))!=0){
+                perror("Erreur lors de l'attente:");
+                exit(1);
+            }
+        }
+        if(team->idRunner==player->id){ //celui qui cours c'est bien le bon joueur
+            printf("Joueur n°%d: Début de son tour\n",player->id);
+            calcul(1);
+            printf("Joueur n°%d: Fin de son tour\n",player->id);
+            team->water-=MAX_WATER_BRING;
+            printf("Equipe n°%d: Il reste %dL d'eau à ramener\n",team->id,team->water);
+            if((team->idRunner+1)%(team->playerCount)==0 || ((team->idRunner)%(team->playerCount)==0 && team->idRunner!=team->id * team->playerCount)){
+                team->idRunner = team->id * team->playerCount;
+            }
+            else{
+                team->idRunner++;
+            }
+            printf("Joueur n°%d: Donne le relai au Joueur n°%d\n",player->id,team->idRunner);
+            if(pthread_cond_broadcast(&(team->cond))!=0){
+                perror("Erreur du diffusion d'évènement:");
+                exit(1);
+            }  
         }
     }
-    if(team->idRunner==player->id){ //celui qui cours c'est bien le bon joueur
-        printf("Joueur n°%d: Début de son tour\n",player->id);
-        calcul(1);
-        printf("Joueur n°%d: Fin de son tour\n",player->id);
-        if((team->idRunner+1)%(team->playerCount)==0 || ((team->idRunner)%(team->playerCount)==0 && team->idRunner!=team->id * team->playerCount)){
-            team->idRunner = team->id * team->playerCount;
-        }
-        else{
-            team->idRunner++;
-        }
-        printf("Joueur n°%d: Donne le relai au Joueur n°%d\n",player->id,team->idRunner);
-        if(pthread_cond_broadcast(&(team->cond))!=0){
-            perror("Erreur du diffusion d'évènement:");
-            exit(1);
-        }  
-    }
+    printf("VICTOIRE DE L'EQUIPE N°%d\n",team->id);
     pthread_exit(NULL);
 }
 
@@ -74,7 +82,7 @@ int main(int argc, char * argv[]){
         team->id = t;
         team->idRunner = t*playerCount;
         team->playerCount=playerCount;
-        team->water = 0;
+        team->water = BASSINE;
         if(pthread_cond_init(&team->cond,NULL)!=0){
                 perror("erreur initialisation de la condition:");
                 exit(1);
