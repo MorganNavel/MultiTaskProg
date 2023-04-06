@@ -39,8 +39,7 @@ int main(int argc, char * argv[]){
  
   if (msgctl(msgid, IPC_RMID, NULL) == -1)
     perror("erreur suppression file de message :");
-
-   cout << "suppression file ok" << endl;
+  cout << "suppression file ok" << endl;
   
   return 0;
 }

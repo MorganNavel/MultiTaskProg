@@ -18,13 +18,13 @@ default: $(BIN)
 obj/%.o: %.cc
 	g++ -Wall -Iinclude -c $< -o $@
 
-bin/Pi: $(SRCS2:%.c=obj/%.o) $(SRCS0:%.c=obj/%.o)
+bin/Pi:$(SRCS0:%.cc=obj/%.o)
 	g++ -o $@ $+
 
-bin/Pctrl: $(SRCS1:%.c=obj/%.o)
+bin/Pctrl: $(SRCS1:%.cc=obj/%.o)
 	g++ -o $@ $+
 
-bin/suppr: $(SRCS3:%.c=obj/%.o)
+bin/suppr: $(SRCS3:%.cc=obj/%.o)
 	g++ -o $@ $+
 
 
