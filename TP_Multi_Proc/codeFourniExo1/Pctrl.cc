@@ -5,6 +5,7 @@
 #include <sys/msg.h>
 #include <stdio.h>//perror
 #include <cstring>
+ #include <unistd.h>
 using namespace std;
 struct msgBuffer{
     long etiq;
@@ -35,30 +36,43 @@ int main(int argc, char * argv[]){
     //Reception d'une demande de d'accès
     while(1){
         struct msgBuffer vMsgRecv;
-        if(msgrcv(f_id, &vMsgRecv,(size_t)sizeof(vMsgRecv.pid), 0, 0) == -1){
-            perror("error msgrcv (premier rcv):");
-            exit(1);
-        }
-        cout <<"message reçu"<<endl;
-        cout<<"Proccessus:"<<vMsgRecv.texte<<endl;
-        //Repond "oui" ou "non" à cette demande
         struct msgBuffer vMsgSend;
-        vMsgSend.etiq = 2;
-        if(msgsnd(f_id,&vMsgSend,(size_t)sizeof(vMsgSend.texte), vMsgRecv.pid)==-1){
-            perror("error envoie de message:");
+        if(msgrcv(f_id, &vMsgRecv,(size_t)sizeof(vMsgRecv.pid), 1, 0) == -1){
+            perror("error msgrcv (premier rcv):");
+            if (msgctl(f_id, IPC_RMID, NULL) == -1){
+                perror("erreur suppression file de message :");
+                exit(1);
+            }
+            cout << "suppression file ok" << endl;
             exit(1);
         }
-        cout<<"Envoie du message réussi"<<endl;
+        cout <<"Message reçu, traitement du processus de pid:"<<vMsgRecv.pid<<endl;
+        //Repond "oui" ou "non" à cette demande
+        vMsgSend.etiq = vMsgRecv.pid;
+        if(msgsnd(f_id,&vMsgSend,(size_t)sizeof(vMsgSend.pid), 0)==-1){
+            perror("error envoie de message:");
+            if (msgctl(f_id, IPC_RMID, NULL) == -1){
+                perror("erreur suppression file de message :");
+                exit(1);
+            }
+            cout << "suppression file ok" << endl;
+            exit(1);
+        }
+        cout<<"Partage de la ressource"<<endl;
 
         int pid = vMsgRecv.pid;
         //Si "Oui" il attend de recevoir une message de libération de la ressource
         if(msgrcv(f_id, &vMsgRecv,(size_t)sizeof(vMsgRecv.pid), pid, 0) == -1){
             perror("error msgrcv (deuxieme rcv):");
+            if (msgctl(f_id, IPC_RMID, NULL) == -1){
+                perror("erreur suppression file de message :");
+                exit(1);
+            }
+            cout << "suppression file ok" << endl;
             exit(1);
         }
-        cout <<"message reçu"<<endl;
+        cout<<"Fin du partage de la ressource"<<endl;
     }
-
     if (msgctl(f_id, IPC_RMID, NULL) == -1){
         perror("erreur suppression file de message :");
         exit(1);

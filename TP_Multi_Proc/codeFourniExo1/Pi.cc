@@ -5,6 +5,7 @@
 #include <sys/msg.h>
 #include <stdio.h>//perror
 #include <cstring>
+ #include <unistd.h>
 using namespace std;
 struct msgBuffer{
     long etiq;
@@ -35,25 +36,26 @@ int main(int argc, char * argv[]){
     struct msgBuffer vMsgRecv;
     vMsgSend.etiq = 1;
     vMsgSend.pid = getpid();
-    cout<<"Envoyez un message"<<endl;
-
+    cout<<"Demande d'accès d'une ressource du PID: "<<getpid()<<endl;
     if(msgsnd(f_id,&vMsgSend,sizeof(vMsgSend.pid), 0)==-1){
         perror("error envoie de message:");
         exit(1);
     }
-    cout<<"Envoie du message réussi"<<endl;
-
-    if(msgrcv(f_id, &vMsgRecv,(size_t)sizeof(vMsgRecv.texte), 0, 0) == -1){
+    cout<<"Envoie de demande d'accès réussi"<<endl;
+    cout<<"Attente d'un message ayant pour étiquette "<<vMsgSend.pid<<endl;
+    if(msgrcv(f_id, &vMsgRecv,(size_t)sizeof(vMsgRecv.pid), (int)vMsgSend.pid, 0) == -1){
         perror("error msgrcv:");
         exit(1);
     }
-    cout <<"message reçu"<<endl;
-    cout<<"Controlleur: "<<vMsgRecv.texte<<endl;
-
-    strcpy(vMsgSend.texte,"libération");
-    if(msgsnd(f_id,&vMsgSend,sizeof(vMsgSend.texte), 0)==-1){
+    cout <<"Recepetion d'un message contenant le PID "<<vMsgRecv.etiq<<endl;
+    cout <<"Accès Autorisé"<<endl;
+    sleep(5);
+    vMsgSend.etiq = getpid();
+    if(msgsnd(f_id,&vMsgSend,sizeof(vMsgSend.pid), 0)==-1){
         perror("error envoie de message:");
         exit(1);
     }
+    cout<<"Libération de la ressource"<<endl;
+
     return 0;
 }
