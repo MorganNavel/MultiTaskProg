@@ -50,7 +50,7 @@ int main(int argc, char * argv[]){
     cout <<"Recepetion d'un message contenant le PID "<<vMsgRecv.etiq<<endl;
     cout <<"Accès Autorisé"<<endl;
     sleep(5);
-    vMsgSend.etiq = getpid();
+    vMsgSend.etiq = 2;
     if(msgsnd(f_id,&vMsgSend,sizeof(vMsgSend.pid), 0)==-1){
         perror("error envoie de message:");
         exit(1);
