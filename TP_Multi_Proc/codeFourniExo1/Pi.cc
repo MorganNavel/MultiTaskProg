@@ -42,7 +42,7 @@ int main(int argc, char * argv[]){
         exit(1);
     }
     cout<<"Envoie de demande d'accès réussi"<<endl;
-    cout<<"Attente d'un message ayant pour étiquette "<<vMsgSend.pid<<endl;
+    cout<<"Envoie d'un message ayant pour étiquette "<<vMsgSend.pid<<endl;
     if(msgrcv(f_id, &vMsgRecv,(size_t)sizeof(vMsgRecv.pid), (int)vMsgSend.pid, 0) == -1){
         perror("error msgrcv:");
         exit(1);

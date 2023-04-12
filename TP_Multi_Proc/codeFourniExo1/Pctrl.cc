@@ -61,7 +61,6 @@ int main(int argc, char * argv[]){
         cout<<"Partage de la ressource"<<endl;
 
         int pid = 2;
-        //Si "Oui" il attend de recevoir une message de libération de la ressource
         if(msgrcv(f_id, &vMsgRecv,(size_t)sizeof(vMsgRecv.pid), pid, 0) == -1){
             perror("error msgrcv (deuxieme rcv):");
             if (msgctl(f_id, IPC_RMID, NULL) == -1){
