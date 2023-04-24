@@ -17,14 +17,14 @@
 
 int main(int argc, char * argv[]){
   
-  if (argc!=5) {
+  if (argc!=4) {
     printf("Nbre d'args invalide, utilisation :\n");
-    printf("%s nombre-traitements nombre-zones fichier-pour-cle-ipc entier-pour-cl�-ipc\n", argv[0]);
+    printf("%s nombre-zones fichier-pour-cle-ipc entier-pour-cl�-ipc\n", argv[0]);
     exit(0);
   }
-  int cle = ftok(argv[3], atoi(argv[4]));
+  int cle = ftok(argv[2], atoi(argv[3]));
 
-  int nbSem = atoi(argv[2]);
+  int nbSem = atoi(argv[1]);
 
   int idSem=semget(cle, nbSem, IPC_CREAT | IPC_EXCL | 0600);
   
@@ -40,7 +40,7 @@ int main(int argc, char * argv[]){
   // initialisation des s�maphores � 0
  
   ushort tabinit[nbSem];
-  for (int i = 0; i < nbSem; i++) tabinit[i] = 0;
+  for (int i = 0; i < nbSem; i++) tabinit[i] = 1;
  
 
   union semun{
@@ -77,7 +77,7 @@ int main(int argc, char * argv[]){
   // cr�ation et initialisation du segment de m�moire partag� :
 
   // on r�utilise la m�me cl� puisque la num�rotation des IPC d�pend du type d'objet.
-  int laMem = shmget(cle, atoi(argv[2])*sizeof(int), IPC_CREAT | IPC_EXCL | 0600);
+  int laMem = shmget(cle, nbSem*sizeof(int), IPC_CREAT | IPC_EXCL | 0600);
  if (laMem == -1){
     perror("erreur shmget : ");
     exit(-1);
@@ -95,7 +95,7 @@ int main(int argc, char * argv[]){
 
   // j'ai un pointeur sur le segment, j'initialise le tableau 
 	 
-  for(int i=0; i < atoi(argv[2]); i++){
+  for(int i=0; i < nbSem; i++){
     p_att[i] = 0;
   }
 
