@@ -46,6 +46,10 @@ int main(int argc, char * argv[]){
     }
     cout<<"Opération P effectué"<<endl;
     int val_Sem = semctl(idSem,GETVAL,0);
+    if(val_Sem==-1){
+        perror("error: semctl");
+        exit(1);
+    }
 
     cout<<"Valeur du sémaphore: "<<val_Sem<<endl;
     //attente que la valeur du sémaphore soit nulle
